@@ -51,6 +51,17 @@ THE SOFTWARE.
 // ***not supported, use level converter!!!***
 #endif
 
+#define GAMECUBE_STOP_BIT 1
+#define GAMECUBE_INIT 0x00
+#define GAMECUBE_INIT_SIZE (1*8)
+#define GAMECUBE_GET_ORIGIN 0x41
+#define GAMECUBE_GET_ORIGIN_SIZE (1*8)
+#define GAMECUBE_GET_CONTROLLER_A 0x40
+#define GAMECUBE_GET_CONTROLLER_B 0x03
+#define GAMECUBE_GET_CONTROLLER_C 0x00
+#define GAMECUBE_GET_CONTROLLER_C_RUMBLE 0x01
+#define GAMECUBE_GET_CONTROLLER_SIZE (3*8)
+
 //================================================================================
 // Report Typedefinitions
 //================================================================================
@@ -125,16 +136,18 @@ public:
 
 	// user read/write functions
 	bool read(bool rumble = 0); // default no rumble
-	void write(void);
+	bool write(void);
 
 	// writes the dump in a passed in array(in this case the report structs)
-	void translate_raw_data(uint8_t raw_dumb[], void* data, uint8_t length);
+	void translate_raw_data(uint8_t raw_dump[], void* data, uint8_t length);
 
 	// writes variables to the intern report
 	inline void xAxis(uint8_t a){ report.xAxis = a; }
 	inline void yAxis(uint8_t a){ report.yAxis = a; }
 	inline void cxAxis(uint8_t a){ report.cxAxis = a; }
 	inline void cyAxis(uint8_t a){ report.cyAxis = a; }
+	inline void left(uint8_t l){ report.left = l; }
+	inline void right(uint8_t r){ report.right = r; }
 
 	// functions to communicate with the controller
 	// public for debug access
@@ -144,7 +157,7 @@ public:
 	void send(uint8_t *buffer, uint8_t length,
 		volatile uint8_t* modePort, volatile uint8_t* outPort, uint8_t bitMask);
 
-	bool get(uint8_t *buffer, uint8_t length,
+	uint8_t get(uint8_t *buffer, uint8_t length,
 		volatile uint8_t* modePort, volatile uint8_t* outPort, volatile uint8_t * inPort, uint8_t bitMask);
 
 

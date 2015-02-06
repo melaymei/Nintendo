@@ -1,5 +1,7 @@
 Arduino Nintendo Library
 ========================
+**It is possible that the new 1.5.7 IDE is incompatible because of the new toolchain and different timings.
+Everything below (1.0.5 and 1.5.6-r2 works)**
 
 This library is made to connect Nintendo Controllers to your Arduino very easy.
 Make sure you grab the right hardware, tear off some cables and use your controllers
@@ -62,6 +64,13 @@ How to get assembler output:
 http://rcarduino.blogspot.de/2012/09/how-to-view-arduino-assembly.html
 
 http://www.atmel.com/Images/doc0856.pdf
+
+I noticed that the timings differ from the controller to the console (black v1):
+
+Gamecube controller pulses: 1uS and 3uS
+
+Gamecube console pulses: 1.25uS and 3.75uS
+
 
 This library wouldnt be possible without
 ========================================

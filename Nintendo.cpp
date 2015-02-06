@@ -32,9 +32,6 @@ Gamecube_ Gamecube;
 Gamecube_::Gamecube_(void){
 	// prevents sendget from being called without calling begin()
 	_bitMask = 0;
-	// clears the reports
-	memset(&status, 0x00, sizeof(status));
-	memset(&report, 0x00, sizeof(report));
 }
 
 bool Gamecube_::begin(uint8_t pin){
@@ -45,97 +42,103 @@ bool Gamecube_::begin(uint8_t pin){
 	_inPort = portInputRegister(port);
 	_modePort = portModeRegister(port);
 
+	// clears the reports
+	memset(&status, 0x00, sizeof(status));
+	memset(&report, 0x00, sizeof(report));
+	report.HIGH1 = HIGH;
+
 	// Initialize the gamecube controller by sending it a null byte.
 	// This is unnecessary for a standard controller, but is required for the
 	// Wavebird.
 
 	// return status information for optional use
-	return init();
+	//return init();
+	return true;
+}
+/*
+bool Gamecube_::init(void){
+// only read values if begin() was called before
+if (!_bitMask) return false;
+
+// Initialize the gamecube controller by sending it a null byte.
+// This is unnecessary for a standard controller, but is required for the
+// Wavebird.
+
+// 1 received bit per byte raw input dump
+// for fast measurement
+
+// the dump is used for sending and getting new information in the same array
+//uint8_t raw_dump[sizeof(status)* 8] = { 0x00 };
+
+uint8_t raw_dump[sizeof(status) * 8];
+uint8_t command[] = { 0x00 };
+
+// don't want interrupts getting in the way
+noInterrupts();
+
+// send those byte, read data and dump it into raw_dump
+//bool newinput = sendget(raw_dump, 1, sizeof(raw_dump), _modePort, _outPort, _inPort, _bitMask);
+
+// send the command
+send(command, sizeof(command), _modePort, _outPort, _bitMask);
+
+// read in data and dump it to raw_dump
+bool newinput = get(raw_dump, sizeof(raw_dump), _modePort, _outPort, _inPort, _bitMask);
+
+// end of time sensitive code
+interrupts();
+
+// only translate the data if the input was valid
+if (newinput){
+// translate the data in raw_dump to something useful
+translate_raw_data(raw_dump, &status, sizeof(status));
+
+// switch the first two bytes to compare it easy with the documentation
+uint8_t temp = status.whole8[0];
+status.whole8[0] = status.whole8[1];
+status.whole8[1] = temp;
 }
 
-bool Gamecube_::init(void){
-	// only read values if begin() was called before
-	if (!_bitMask) return false;
-
-	// Initialize the gamecube controller by sending it a null byte.
-	// This is unnecessary for a standard controller, but is required for the
-	// Wavebird.
-
-	// 1 received bit per byte raw input dump
-	// for fast measurement
-
-	// the dump is used for sending and getting new information in the same array
-	//uint8_t raw_dump[sizeof(status)* 8] = { 0x00 };
-
-	uint8_t raw_dump[sizeof(status)* 8];
-	uint8_t command[] = { 0x00 };
-
-	// don't want interrupts getting in the way
-	noInterrupts();
-
-	// send those byte, read data and dump it into raw_dump
-	//bool newinput = sendget(raw_dump, 1, sizeof(raw_dump), _modePort, _outPort, _inPort, _bitMask);
-
-	// send the command
-	send(command, sizeof(command), _modePort, _outPort, _bitMask);
-
-	// read in data and dump it to raw_dump
-	bool newinput = get(raw_dump, sizeof(raw_dump), _modePort, _outPort, _inPort, _bitMask);
-
-	// end of time sensitive code
-	interrupts();
-
-	// only translate the data if the input was valid
-	if (newinput){
-		// translate the data in raw_dump to something useful
-		translate_raw_data(raw_dump, &status, sizeof(status));
-
-		// switch the first two bytes to compare it easy with the documentation
-		uint8_t temp = status.whole8[0];
-		status.whole8[0] = status.whole8[1];
-		status.whole8[1] = temp;
-	}
-
-	// return status information for optional use
-	return newinput;
+// return status information for optional use
+return newinput;
 }
 
 void Gamecube_::end(void){
-	// only read values if begin() was called before
-	if (!_bitMask) return;
+// only read values if begin() was called before
+if (!_bitMask) return;
 
-	// Turns off rumble by sending a normal reading request
-	// and discards the information
+// Turns off rumble by sending a normal reading request
+// and discards the information
 
-	// 1 received bit per byte raw input dump
-	// for fast measurement
+// 1 received bit per byte raw input dump
+// for fast measurement
 
-	// the dump is used for sending and getting new information in the same array
-	//uint8_t raw_dump[sizeof(report)* 8] = { 0x40, 0x03, 0x00 };
+// the dump is used for sending and getting new information in the same array
+//uint8_t raw_dump[sizeof(report)* 8] = { 0x40, 0x03, 0x00 };
 
-	uint8_t command[] = { 0x40, 0x03, 0x00 };
+uint8_t command[] = { 0x40, 0x03, 0x00 };
 
-	// don't want interrupts getting in the way
-	noInterrupts();
+// don't want interrupts getting in the way
+noInterrupts();
 
-	// send the command
-	send(command, sizeof(command), _modePort, _outPort, _bitMask);
+// send the command
+send(command, sizeof(command), _modePort, _outPort, _bitMask);
 
-	// end of time sensitive code
-	interrupts();
+// end of time sensitive code
+interrupts();
 
-	// Stupid routine to wait for the gamecube controller to stop
-	// sending its response. We don't care what it is, but we
-	// can't start asking for status if it's still responding
-	for (int i = 0; i < 10; i++) {
-		// make sure the line is idle for 10 iterations, should
-		// be plenty. (about 7uS)
-		if (!(*_inPort & _bitMask))
-			i = 0;
-	}
+// Stupid routine to wait for the gamecube controller to stop
+// sending its response. We don't care what it is, but we
+// can't start asking for status if it's still responding
+for (int i = 0; i < 10; i++) {
+// make sure the line is idle for 10 iterations, should
+// be plenty. (about 7uS)
+if (!(*_inPort & _bitMask))
+i = 0;
+}
 
-	// reset that you need to call begin() again first
-	_bitMask = 0;
+// reset that you need to call begin() again first
+_bitMask = 0;
 }
 
 //================================================================================
@@ -143,63 +146,246 @@ void Gamecube_::end(void){
 //================================================================================
 
 bool Gamecube_::read(bool rumble){
+// only read values if begin() was called before
+if (!_bitMask) return false;
+
+// Command to send to the gamecube
+// The last bit is rumble
+
+// 1 received bit per byte raw input dump
+// for fast measurement
+
+// the dump is used for sending and getting new information in the same array
+//uint8_t raw_dump[sizeof(report)* 8] = { 0x40, 0x03, rumble & 0x01 };
+
+uint8_t raw_dump[sizeof(report) * 8];
+uint8_t command[] = { 0x40, 0x03, rumble & 0x01 };
+
+// don't want interrupts getting in the way
+noInterrupts();
+
+// send those bytes, read data and dump it into raw_dump
+//bool newinput = sendget(raw_dump, 3, sizeof(raw_dump), _modePort, _outPort, _inPort, _bitMask);
+
+// send the command
+send(command, sizeof(command), _modePort, _outPort, _bitMask);
+
+// read in data and dump it to raw_dump
+bool newinput = get(raw_dump, sizeof(raw_dump), _modePort, _outPort, _inPort, _bitMask);
+
+// end of time sensitive code
+interrupts();
+
+// only translate the data if the input was valid
+if (newinput){
+// translate the data in raw_dump to something useful
+translate_raw_data(raw_dump, &report, sizeof(report));
+}
+
+// return status information for optional use
+return newinput;
+}*/
+
+//================================================================================
+// Gamecube Write
+//================================================================================
+
+bool Gamecube_::write(void){
 	// only read values if begin() was called before
 	if (!_bitMask) return false;
 
-	// Command to send to the gamecube
-	// The last bit is rumble
+	// dump to save the command input from the Gamecube
+	uint8_t raw_dump[3 * 8 + GAMECUBE_STOP_BIT];
+	uint8_t length;
 
-	// 1 received bit per byte raw input dump
-	// for fast measurement
-
-	// the dump is used for sending and getting new information in the same array
-	//uint8_t raw_dump[sizeof(report)* 8] = { 0x40, 0x03, rumble & 0x01 };
-
-	uint8_t raw_dump[sizeof(report)* 8];
-	uint8_t command[] = { 0x40, 0x03, rumble & 0x01 };
+	// variables for sending back
+	bool rumble = false; //<-- todo
 
 	// don't want interrupts getting in the way
 	noInterrupts();
+	DDRF |= 0x02;
 
-	// send those bytes, read data and dump it into raw_dump
-	//bool newinput = sendget(raw_dump, 3, sizeof(raw_dump), _modePort, _outPort, _inPort, _bitMask);
+	// set a max reading limit. You need at least 3 readings:
+	// init (1-3 times), get origin (1x), get controller (1-3 times)
+	// its split like this:
+	// 1-3 = try controller, 4 = origin, 5-7 = try init
+	uint8_t retry = 7;
+	while (retry){
+		// reset length for new reading
+		length = 0;
 
-	// send the command
-	send(command, sizeof(command), _modePort, _outPort, _bitMask);
+		// read in data and dump it to raw_dump
+		// this is enough time (~50ms) to measure twice if the first is messed up
+		uint8_t timeout = 0xFF;
 
-	// read in data and dump it to raw_dump
-	bool newinput = get(raw_dump, sizeof(raw_dump), _modePort, _outPort, _inPort, _bitMask);
+		// check if we got at least 8 bytes (normally you get 8 + 1 stop bit, always high)
+		while (length < 8){
+			length = get(raw_dump, sizeof(raw_dump), _modePort, _outPort, _inPort, _bitMask);
+			timeout--;
+			if (!timeout){
+				//Serial.println("err1!");
+				length = 0; // no success with sending
+				break;
+			}
+		}
+
+		// translate the data in raw_dump to something useful (same array as destination)
+		translate_raw_data(raw_dump, raw_dump, length);
+
+		// get controller init
+		if ((length == GAMECUBE_INIT_SIZE + GAMECUBE_STOP_BIT) && (raw_dump[0] == GAMECUBE_INIT)){
+			// this is that we dont get stuck with reading init values.
+			// we NEED to get the "get origin" request directly after the init command
+			// or abort the operation. Same if we expect a "get controller" request
+			if (retry < 5){
+				length = 0; // no success with sending
+				break;
+			}
+			else{
+				retry = 4;
+				uint8_t command[] = { 0x09, 0x00, 0x20 | status.rumble << 3 };
+				send(command, sizeof(command), _modePort, _outPort, _bitMask);
+			}
+		}
+		// get origin (european code)
+		else if ((length == GAMECUBE_GET_ORIGIN_SIZE + GAMECUBE_STOP_BIT) && (raw_dump[0] == GAMECUBE_GET_ORIGIN)){
+			// we dont need to check if retry == 4, we are happy that the cube asks us that
+			// the console will now try to send up to 3 times "get controller" signal
+			retry = 3;
+			uint8_t command[] = { 0x00, 0x80, 0x7C, 0x7B, 0x80, 0x78, 0x1B, 0x18, 0x00, 0x00 };
+			send(command, sizeof(command), _modePort, _outPort, _bitMask);
+		}
+		// get controller report (with or without rumble request)
+		else if (((length == GAMECUBE_GET_CONTROLLER_SIZE + GAMECUBE_STOP_BIT)
+			&& raw_dump[0] == GAMECUBE_GET_CONTROLLER_A && raw_dump[1] == GAMECUBE_GET_CONTROLLER_B
+			&& raw_dump[2] == GAMECUBE_GET_CONTROLLER_C)
+			|| ((length == GAMECUBE_GET_CONTROLLER_SIZE + GAMECUBE_STOP_BIT)
+			&& raw_dump[0] == GAMECUBE_GET_CONTROLLER_A && raw_dump[1] == GAMECUBE_GET_CONTROLLER_B
+			&& raw_dump[2] == GAMECUBE_GET_CONTROLLER_C_RUMBLE)){
+
+			// save rumble request
+			status.rumble = raw_dump[2];
+			//uint8_t command[] = { 0x00, 0x80, 0x7C, 0x7B, 0x80, 0x78, 0x1B, 0x18, 0x00, 0x00 };
+			//send(report.whole8, sizeof(command), _modePort, _outPort, _bitMask);
+			uint8_t r[sizeof(report.whole8)];
+			memcpy(r, report.whole8, sizeof(report.whole8));
+			send(r, sizeof(r), _modePort, _outPort, _bitMask);
+
+			// we wrote our report sucessfull
+			//break;
+		}
+		// fast exit from timeout above
+		else if (length == 0)
+			break;
+		// unknown, retry to read
+		else{
+			// break if we tried to read 3 times the controller init, origin or get controller
+			if (retry == 4 || retry == 5){
+				length = 0; // no success with sending
+				break;
+			}
+			retry--;
+
+		}
+	}
 
 	// end of time sensitive code
 	interrupts();
 
-	// only translate the data if the input was valid
-	if (newinput){
-		// translate the data in raw_dump to something useful
-		translate_raw_data(raw_dump, &report, sizeof(report));
-	}
-
 	// return status information for optional use
-	return newinput;
+	if (length)
+		return true;
+	else
+		return false;
 }
 
 
-void Gamecube_::translate_raw_data(uint8_t raw_dumb[], void* data, uint8_t length){
+void Gamecube_::translate_raw_data(uint8_t raw_dump[], void* data, uint8_t length){
 	// The get function sloppily dumps its data 1 bit per byte
 	// into the get_status_extended char array. It's our job to go through
 	// that and put each piece neatly into the struct
 	uint8_t* report = (uint8_t*)data;
-	memset(report, 0, length);
+	//memset(report, 0, length);
 
-	for (int i = 0; i < length * 8; i++){
-		report[i / 8] |= raw_dumb[i] ? (0x80 >> (i % 8)) : 0;
-		//raw_dump[i] ? data[i/8] |= (0x80 >> (i%8)) :  data[i/8] &= ~(0x80 >> (i%8));
+	for (int i = 0; i < length; i++){
+		//report[i / 8] |= raw_dump[i] ? (0x80 >> (i % 8)) : 0;
+		raw_dump[i] ? report[i / 8] |= (0x80 >> (i % 8)) : report[i / 8] &= ~(0x80 >> (i % 8));
 	}
 }
 
 //================================================================================
 // Gamecube i/o functions
 //================================================================================
+
+
+//================================================================================
+// Get
+//================================================================================
+
+uint8_t Gamecube_::get(uint8_t *buffer, uint8_t length,
+	volatile uint8_t* modePort, volatile uint8_t* outPort, volatile uint8_t * inPort, uint8_t bitMask){
+	uint8_t expected_length = length;
+
+	// Prepare pin for input with pullup
+	*modePort &= ~bitMask; //IN
+	*outPort |= bitMask; //HIGH, 5 cycles
+
+	// listen for the expected 8 bytes of data back from the controller and
+	// blast it out to the raw_dump array, one bit per byte for extra speed.
+	// Afterwards, call translate_raw_data() to interpret the raw data and pack
+	// it into the struct.
+	// Starting to listen
+
+	// First timeout is longer
+	uint8_t timeout = 0xFF;
+
+	// Again, using gotos here to make the assembly more predictable and
+	// optimization easier (please don't kill me)
+get_loop:
+	// wait for line to go low
+	while (*inPort & bitMask) {
+		timeout--;
+		if (!timeout)
+			return expected_length - length;
+	}
+
+	// wait approx 1,5us and poll the line
+	asm volatile (
+		"nop\nnop\nnop\nnop\nnop\n"
+		"nop\nnop\nnop\nnop\nnop\n"
+		"nop\nnop\nnop\nnop\nnop\n"
+		"nop\nnop\nnop\nnop\nnop\n"
+		"nop\nnop\n"
+		"nop\n"
+		"nop\n"
+		);
+
+	PORTF |= 0x02;
+
+	*buffer = *inPort & bitMask;
+
+	PORTF &= ~0x02;
+
+	++buffer;
+	--length;
+	if (length == 0)
+		return expected_length - length;
+
+	// wait for line to go high again 1,5uS
+	asm volatile (
+		"nop\nnop\nnop\nnop\nnop\n"
+		"nop\nnop\nnop\nnop\nnop\n"
+		"nop\nnop\nnop\nnop\nnop\n"
+		"nop\nnop\nnop\nnop\nnop\n"
+		"nop\n"
+		"nop\n"
+		);
+
+	// the Port thing takes way longer, so timeout is 5 loops
+	// this means after 4uS it will timeout
+	timeout = 0x05;
+	goto get_loop;
+}
 
 //================================================================================
 // Send
@@ -259,6 +445,8 @@ outer_loop:
 					"nop\nnop\nnop\nnop\nnop\n"
 					"nop\nnop\nnop\nnop\nnop\n"
 					"nop\nnop\nnop\nnop\nnop\n"
+					"nop\nnop\n"
+					"nop\nnop\n"
 					);
 
 			}
@@ -272,6 +460,8 @@ outer_loop:
 					"nop\nnop\nnop\nnop\nnop\n"
 					"nop\nnop\nnop\nnop\nnop\n"
 					"nop\nnop\nnop\nnop\nnop\n"
+					"nop\nnop\n"
+					"nop\nnop\n"
 					"nop\nnop\n");
 
 				// Setting line to high
@@ -324,63 +514,6 @@ outer_loop:
 		"nop\n");
 	*outPort |= bitMask; //HIGH, 5 cycles
 }
-
-//================================================================================
-// Get
-//================================================================================
-
-bool Gamecube_::get(uint8_t *buffer, uint8_t length,
-	volatile uint8_t* modePort, volatile uint8_t* outPort, volatile uint8_t * inPort, uint8_t bitMask){
-
-	// Prepare pin for input with pullup
-	*modePort &= ~bitMask; //IN
-	*outPort |= bitMask; //HIGH, 5 cycles
-
-	// listen for the expected 8 bytes of data back from the controller and
-	// blast it out to the raw_dump array, one bit per byte for extra speed.
-	// Afterwards, call translate_raw_data() to interpret the raw data and pack
-	// it into the struct.
-	// Starting to listen
-	uint8_t timeout;
-
-	// Again, using gotos here to make the assembly more predictable and
-	// optimization easier (please don't kill me)
-get_loop:
-	// the Port thing takes way longer, so timeout is 5 loops
-	// this means after 4uS it will timeout
-	timeout = 0x05;
-	// wait for line to go low
-	while (*inPort & bitMask) {
-		timeout--;
-		if (!timeout)
-			return false;
-	}
-
-	// wait approx 1,5us and poll the line
-	asm volatile (
-		"nop\nnop\nnop\nnop\nnop\n"
-		"nop\nnop\nnop\nnop\nnop\n"
-		"nop\nnop\nnop\nnop\nnop\n"
-		"nop\nnop\n"
-		);
-
-	*buffer = *inPort & bitMask;
-
-	++buffer;
-	--length;
-	if (length == 0)
-		return true;
-
-	// wait for line to go high again 1,5uS
-	asm volatile (
-		"nop\nnop\nnop\nnop\nnop\n"
-		"nop\nnop\nnop\nnop\nnop\n"
-		"nop\nnop\nnop\nnop\nnop\n"
-		"nop\n"
-		);
-	goto get_loop;
-}
-
 
 /**
 * This sends the given byte sequence to the controller
